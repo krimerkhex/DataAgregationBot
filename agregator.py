@@ -48,7 +48,7 @@ def find_salary_from_memory(dt, end_dt, group_type: str) -> float:
     return salary
 
 
-def change_dt(dt, end_dt, group_type: str):
+def change_dt(dt, group_type: str):
     match group_type:
         case 'hour':
             temp = dt + timedelta(hours=1)
@@ -77,7 +77,7 @@ def salary_aggregation(dt_from: str, dt_upto: str, group_type: str) -> dict[str:
                 dataset.append(find_salary_from_memory(dt_from, dt_upto, group_type))
             case _:
                 raise Exception("Invalid group_type")
-        dt_from = change_dt(dt_from, dt_upto, group_type)
+        dt_from = change_dt(dt_from, group_type)
     response = {"dataset": dataset, "labels": labels}
     return response
 
