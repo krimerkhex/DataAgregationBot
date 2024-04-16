@@ -1,34 +1,30 @@
-from bson import decode_all
 from datetime import datetime, timedelta
 from loger import Loger
-import calendar
-
-data: list[dict]
-
-
-def get_data():
-    global data
-    with open("dump/sampleDB/sample_collection.bson", 'rb') as file:
-        data = decode_all(file.read())
+from calendar import monthrange
+from pymongo import MongoClient
 
 
 def find_salary(dt, end_dt, group_type: str) -> float:
-    global data
     salary = 0
-    for item in data:
-        match group_type:
-            case 'hour':
-                if item['dt'].day == dt.day and item['dt'].month == dt.month and item['dt'].year == dt.year and item[
-                    'dt'].hour == dt.hour and item['dt'] <= end_dt:
-                    salary += item['value']
-                    if dt.day == 2:
-                        print(item['value'], item['dt'])
-            case 'day':
-                if item['dt'].day == dt.day and item['dt'].month == dt.month and item['dt'].year == dt.year and item['dt'] <= end_dt:
-                    salary += item['value']
-            case 'month':
-                if item['dt'].month == dt.month and item['dt'].year == dt.year and item['dt'] <= end_dt:
-                    salary += item['value']
+    client = MongoClient('mongodb://localhost:27017/')
+    db = client['mydatabase']
+    collection = db['mycollection']
+    query = {}
+    match group_type:
+        case 'hour':
+            query['dt'] = {'$gte': dt, '$lt': dt + timedelta(hours=1), '$lte': end_dt}
+        case 'day':
+            query['dt'] = {'$gte': dt, '$lt': dt + timedelta(days=1), '$lte': end_dt}
+        case 'month':  # Один баг здесь. Приходить 5516474, должно быть 5515874. Входные данные 1.
+            query['dt'] = {'$gte': dt, '$lte': dt + timedelta(days=monthrange(dt.year, dt.month)[1])}
+    pipeline = [
+        {'$match': query},
+        {'$group': {'_id': None, 'total': {'$sum': '$value'}}}
+    ]
+    result = collection.aggregate(pipeline)
+    for doc in result:
+        salary += doc['total']
+    client.close()
     return salary
 
 
@@ -39,13 +35,11 @@ def change_dt(dt, group_type: str):
         case 'day':
             return dt + timedelta(days=1)
         case 'month':
-            return dt + timedelta(days=calendar.monthrange(dt.year, dt.month)[1])
+            return dt + timedelta(days=monthrange(dt.year, dt.month)[1])
 
 
 @Loger
 def salary_aggregation(dt_from: str, dt_upto: str, group_type: str) -> dict[str: list]:
-    get_data()
-    global data
     dataset = []
     labels = []
     dt_from = datetime.strptime(dt_from, "%Y-%m-%dT%H:%M:%S")
@@ -69,4 +63,4 @@ def salary_aggregation(dt_from: str, dt_upto: str, group_type: str) -> dict[str:
 
 
 if __name__ == "__main__":
-    print(salary_aggregation("2022-02-01T00:00:00", "2022-02-02T00:00:00", "hour"))
+    print(salary_aggregation("2022-09-01T00:00:00", "2022-12-31T23:59:00", "month"))
