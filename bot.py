@@ -24,7 +24,8 @@ async def command_start_handler(message: Message) -> None:
 async def echo_handler(message: Message) -> None:
     try:
         temp = json.loads(message.text)
-        answer = str(salary_aggregation(temp['dt_from'], temp['dt_upto'], temp['group_type']))
+        answer = str(salary_aggregation(temp['dt_from'], temp['dt_upto'], temp['group_type'])).replace("\'", "\"")
+        print(answer)
         await message.answer(text=answer)
     except TypeError:
         await message.answer("Nice try!")

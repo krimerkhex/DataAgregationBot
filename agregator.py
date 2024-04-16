@@ -83,4 +83,4 @@ def salary_aggregation(dt_from: str, dt_upto: str, group_type: str) -> dict[str:
 
 
 if __name__ == "__main__":
-    print(salary_aggregation("2022-02-01T00:00:00", "2022-02-02T00:00:00", "hour"))
+    print(salary_aggregation("2022-09-01T00:00:00", "2022-12-31T23:59:00", "month"))
